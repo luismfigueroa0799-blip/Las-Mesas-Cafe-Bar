@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle, CreditCard } from "lucide-react";
+import { CheckCircle, CreditCard, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
-export default function PedidoExitoso() {
+function PedidoExitosoContenido() {
   const searchParams = useSearchParams();
   const pedidoId = searchParams.get("id") ?? "";
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -50,10 +50,24 @@ export default function PedidoExitoso() {
         <p className="text-xs text-negro/30 mb-4 uppercase tracking-wider">
           Estado: pendiente de confirmación
         </p>
-        <a href="/" className="btn-blanco">
+        <Link href="/" className="btn-blanco">
           Volver al inicio
-        </a>
+        </Link>
       </div>
     </div>
+  );
+}
+
+export default function PedidoExitoso() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="w-10 h-10 text-dorado animate-spin" />
+        </div>
+      }
+    >
+      <PedidoExitosoContenido />
+    </Suspense>
   );
 }
