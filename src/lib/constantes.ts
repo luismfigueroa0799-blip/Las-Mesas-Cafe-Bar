@@ -1,17 +1,17 @@
 export const NUM_MESAS = 8;
 
 export const CATEGORIAS = [
-  "café",
+  "cafe",
   "tostadas",
-  "bollería",
+  "bolleria",
   "bocadillos",
   "bebidas",
 ] as const;
 
 export const ETIQUETAS_CATEGORIA: Record<string, string> = {
-  café: "Café",
+  cafe: "Cafe",
   tostadas: "Tostadas",
-  bollería: "Bollería",
+  bolleria: "Bolleria",
   bocadillos: "Bocadillos",
   bebidas: "Bebidas",
 };

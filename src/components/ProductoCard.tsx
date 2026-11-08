@@ -1,12 +1,17 @@
 "use client";
 
-import { Plus, Coffee, Utensils, Image as ImageIcon } from "lucide-react";
-import { Producto } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { Plus, Coffee } from "lucide-react";
 
-interface ProductoCardProps {
-  producto: Producto;
-  onAgregar: (id: string) => void;
+export interface ProductoCardProps {
+  producto: {
+    id: string | number;
+    nombre: string;
+    precio: number;
+    categoria?: string;
+    disponible?: boolean;
+    imagen?: string;
+  };
+  onAgregar: (id: string | number, nombre: string, precio: number) => void;
   cantidadActual?: number;
   esDomicilio?: boolean;
 }
@@ -17,52 +22,67 @@ export default function ProductoCard({
   cantidadActual = 0,
   esDomicilio = false,
 }: ProductoCardProps) {
-  const disponible = producto.disponible;
+  const esDisponible = producto.disponible !== false;
 
   return (
     <article className="card-producto group">
-      <div className="aspect-[4/3] bg-negro/5 relative overflow-hidden">
-        {disponible ? (
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-negro/40">
-            <Plus className="w-10 h-10 text-white" />
-          </div>
+      <div className="h-48 bg-negro-suave relative overflow-hidden">
+        {producto.imagen ? (
+          <img
+            src={producto.imagen}
+            alt={producto.nombre}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-negro/60">
-            <span className="text-white font-medium text-sm">Agotado</span>
+          <div className="w-full h-full flex items-center justify-center bg-borde/50">
+            <Coffee className="w-12 h-12 text-dorado/30" />
           </div>
         )}
+        {!esDisponible && (
+          <div className="absolute inset-0 bg-negro/80 flex items-center justify-center">
+            <span className="text-xs font-bold text-texto-secundario uppercase tracking-wider">
+              No disponible
+            </span>
+          </div>
+        )}
+        <span className="absolute top-3 left-3 pill-dorado">
+          {producto.categoria ? producto.categoria.charAt(0).toUpperCase() + producto.categoria.slice(1) : ""}
+        </span>
       </div>
 
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-1">
-          <h3 className="font-serif font-bold text-negro leading-tight">
+      <div className="p-5">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="texto-elegante text-lg font-bold text-blanco truncate">
             {producto.nombre}
           </h3>
-          {!disponible && (
-            <span className="text-xs text-negro/50 uppercase tracking-wider font-semibold">
-              no disponible
-            </span>
-          )}
+          <span className="texto-elegante font-bold text-dorado text-lg">
+            {producto.precio.toFixed(2)} EUR
+          </span>
         </div>
-        <p className="text-xs text-negro/50 mb-3 uppercase tracking-wider">
-          {producto.categoria}
+        <p className="text-xs text-texto-secundario mb-4 line-clamp-2">
+          {esDomicilio ? "Disponible para llevar" : "Disponible en mesa"}
         </p>
 
-        <div className="flex items-center justify-between">
-          <span className="font-serif font-bold text-xl"> {producto.precio.toFixed(2)} €</span>
-          {!disponible ? (
-            <span className="text-xs text-negro/40">—</span>
-          ) : (
-            <button
-              onClick={() => onAgregar(producto.id)}
-              disabled={!disponible}
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-dorado text-negro hover:bg-dorado/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              aria-label={`Añadir ${producto.nombre}`}
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-          )}
-        </div>
+        {!esDisponible ? (
+          <button
+            disabled
+            className="w-full py-3 rounded-xl bg-borde text-texto-secundario text-xs font-bold uppercase tracking-wider cursor-not-allowed"
+          >
+            No disponible
+          </button>
+        ) : (
+          <button
+            onClick={() => onAgregar(producto.id, producto.nombre, producto.precio)}
+            disabled={cantidadActual > 0 && cantidadActual >= 10}
+            className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
+              cantidadActual > 0
+                ? "bg-dorado text-negro shadow-dorado hover:bg-dorado-claro hover:shadow-dorado-hover"
+                : "bg-borde border border-dorado/30 text-dorado hover:bg-dorado hover:text-negro"
+            }`}
+          >
+            {cantidadActual > 0 ? `+ Anadir otra (${cantidadActual})` : "+ Anadir"}
+          </button>
+        )}
       </div>
     </article>
   );

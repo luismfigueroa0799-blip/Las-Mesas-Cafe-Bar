@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Las Mesas Café Bar · Pedidos",
-  description: "Pide desde tu mesa o para llevar en Las Mesas Café Bar",
+  title: "Las Mesas Cafe Bar - Pedidos",
+  description: "Pide desde tu mesa o para llevar en Las Mesas Cafe Bar",
 };
 
 export default function RootLayout({
@@ -11,8 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
-      <body className="bg-crema text-negro antialiased">
+    <html lang="es" className="antialiased">
+      <body className={`${inter.variable} bg-negro text-blanco antialiased`}>
         {children}
       </body>
     </html>

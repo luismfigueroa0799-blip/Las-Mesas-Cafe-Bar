@@ -2,19 +2,19 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { MapPin, AlertTriangle, Loader2 } from "lucide-react";
+import { MapPin, AlertTriangle, Loader2, Coffee, CheckCircle, Phone } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Producto } from "@/lib/types";
 import ProductoCard from "@/components/ProductoCard";
 import Carrito from "@/components/Carrito";
 import { crearPedidoDomicilio } from "@/lib/n8n";
+import Header from "@/components/Header";
 
 export default function DomicilioPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Estado del carrito (solo para mostrar precios en pantalla)
   const [items, setItems] = useState<{
     id: string | number;
     nombre: string;
@@ -22,13 +22,13 @@ export default function DomicilioPage() {
     qty: number;
   }[]>([]);
 
-  // Datos de entrega
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
 
   const [pagando, setPagando] = useState(false);
   const [pagoError, setPagoError] = useState<string | null>(null);
+  const [pagoExitoso, setPagoExitoso] = useState<string | null>(null);
 
   useEffect(() => {
     const cargar = async () => {
@@ -82,28 +82,28 @@ export default function DomicilioPage() {
   }, []);
 
   const pagar = async () => {
-    setPagando(true);
-    setPagoError(null);
-
     if (!nombre.trim() || !telefono.trim() || !direccion.trim()) {
-      setPagoError("Completa nombre, teléfono y dirección.");
-      setPagando(false);
+      setPagoError("Completa nombre, telefono y direccion.");
       return;
     }
     if (items.length === 0) {
-      setPagoError("Añade al menos un producto al carrito.");
-      setPagando(false);
+      setPagoError("Anade al menos un producto al carrito.");
       return;
     }
+
+    setPagando(true);
+    setPagoError(null);
+    setPagoExitoso(null);
 
     try {
       const { url } = await crearPedidoDomicilio({
         nombre: nombre.trim(),
         direccion: direccion.trim(),
         cliente_telefono: telefono.trim(),
-        items: items.map((it) => ({ id: it.id, qty: it.qty })),
+        items: items.map((it) => ({ id: Number(it.id), qty: it.qty })),
       });
 
+      setPagoExitoso("redirect");
       window.location.href = url;
     } catch (err: any) {
       setPagoError(err.message || "Error al crear el pedido");
@@ -115,6 +115,7 @@ export default function DomicilioPage() {
   const reset = useCallback(() => {
     setItems([]);
     setPagoError(null);
+    setPagoExitoso(null);
     setNombre("");
     setTelefono("");
     setDireccion("");
@@ -122,7 +123,7 @@ export default function DomicilioPage() {
 
   if (cargando) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-negro">
         <Loader2 className="w-10 h-10 text-dorado animate-spin" />
       </div>
     );
@@ -130,111 +131,99 @@ export default function DomicilioPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center py-12 px-6 text-center">
-        <MapPin className="w-12 h-12 text-amber-600 mb-4" />
-        <h1 className="text-2xl font-serif font-bold text-negro mb-2">
+      <div className="min-h-screen flex flex-col items-center justify-center py-20 px-6 text-center bg-negro">
+        <MapPin className="w-12 h-12 text-amber-500 mb-4" />
+        <h1 className="texto-elegante text-2xl font-bold text-blanco mb-2">
           Error cargando la carta
         </h1>
-        <p className="text-negro/60 mb-6">{error}</p>
-        <Link href="/" className="btn-blanco">Volver al inicio</Link>
+        <p className="text-texto-secundario mb-6">{error}</p>
+        <Link href="/" className="btn-dorado text-negro px-8 py-3">
+          Volver al inicio
+        </Link>
       </div>
     );
   }
 
+  const puedePagar =
+    items.length > 0 &&
+    Boolean(nombre.trim()) &&
+    Boolean(telefono.trim()) &&
+    Boolean(direccion.trim());
+
+  const motivoSinPagar =
+    items.length === 0
+      ? "Aneade productos al carrito."
+      : !nombre.trim() || !telefono.trim() || !direccion.trim()
+        ? "Completa nombre, telefono y direccion."
+        : undefined;
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="border-b border-negro/5 bg-white sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2 text-xl font-serif font-bold tracking-tight">
-              <span className="text-dorado">LM</span> Las Mesas Café Bar
-            </Link>
-            <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-              <Link href="/" className="hover:text-dorado transition-colors">
-                Inicio
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-negro">
+      <Header />
 
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <div className="flex-1 lg:w-3/5 space-y-8">
-            <h2 className="text-3xl font-serif font-bold text-negro mb-4">
-              Para llevar
-            </h2>
-            <p className="text-negro/60 mb-6">
-              Completa tus datos de entrega en el panel derecho y pide lo que
-              quieras.
-            </p>
-            {productos.length === 0 ? (
-              <p className="text-negro/50">No hay productos disponibles.</p>
-            ) : (
-              <div className="grid md:grid-cols-3 gap-4">
-                {productos.map((p) => (
-                  <ProductoCard
-                    key={p.id}
-                    producto={p}
-                    onAgregar={(id) => agregar(id, p.nombre, p.precio)}
-                    cantidadActual={items.find((i) => i.id === p.id)?.qty ?? 0}
-                    esDomicilio
-                  />
-                ))}
+      <main className="flex-1 pt-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col lg:flex-row gap-10 mb-10">
+            <div className="flex-1 lg:w-3/5 space-y-10">
+              <div>
+                <h1 className="texto-elegante text-3xl font-bold text-blanco">
+                  Para llevar
+                </h1>
+                <p className="text-texto-secundario mt-2">
+                  Completa tus datos de entrega y pide lo que quieras desde casa.
+                </p>
               </div>
-            )}
-          </div>
+              {productos.length === 0 ? (
+                <div className="text-center py-20">
+                  <Coffee className="w-16 h-16 text-dorado/20 mx-auto mb-4" />
+                  <p className="text-texto-secundario">No hay productos disponibles.</p>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-3 gap-6">
+                  {productos.map((p) => (
+                    <ProductoCard
+                      key={p.id}
+                      producto={p}
+                      onAgregar={agregar}
+                      cantidadActual={items.find((i) => i.id === p.id)?.qty ?? 0}
+                      esDomicilio
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <div className="lg:w-2/5">
-            <Carrito
-              items={items.map((it) => ({
-                id: it.id,
-                nombre: it.nombre,
-                precio: it.precio,
-                qty: it.qty,
-              }))}
-              onAgregar={agregar}
-              onQuitarUno={quitarUno}
-              onEliminar={eliminar}
-              cargando={pagando}
-              onPagar={pagar}
-              tipo="domicilio"
-              puedePagar={
-                items.length > 0 &&
-                Boolean(nombre.trim()) &&
-                Boolean(telefono.trim()) &&
-                Boolean(direccion.trim())
-              }
-              motivoSinPagar={
-                items.length === 0
-                  ? "Añade productos al carrito."
-                  : !nombre.trim() || !telefono.trim() || !direccion.trim()
-                  ? "Completa nombre, teléfono y dirección."
-                  : undefined
-              }
-              nombre={nombre}
-              setNombre={setNombre}
-              telefono={telefono}
-              setTelefono={setTelefono}
-              direccion={direccion}
-              setDireccion={setDireccion}
-            />
+            <div className="lg:w-2/5">
+              <Carrito
+                items={items.map((it) => ({
+                  id: Number(it.id),
+                  nombre: it.nombre,
+                  precio: it.precio,
+                  qty: it.qty,
+                }))}
+                onAgregar={agregar}
+                onQuitarUno={quitarUno}
+                onEliminar={eliminar}
+                cargando={pagando}
+                onPagar={pagar}
+                tipo="domicilio"
+                puedePagar={puedePagar}
+                motivoSinPagar={motivoSinPagar}
+                nombre={nombre}
+                setNombre={setNombre}
+                telefono={telefono}
+                setTelefono={setTelefono}
+                direccion={direccion}
+                setDireccion={setDireccion}
+              />
+            </div>
           </div>
         </div>
       </main>
 
-      {pagoError && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-          <div className="bg-rose-50 border border-rose-100 text-rose-800 px-4 py-3 rounded-lg shadow-lg text-sm">
-            <AlertTriangle className="w-4 h-4 mr-2 inline" />
-            {pagoError}
-          </div>
-        </div>
-      )}
-
-      <footer className="border-t border-negro/5 bg-white mt-auto py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center text-sm text-negro/60">
-          Las Mesas Café Bar · Tel. 928 896 097 · WhatsApp 601 163 933
+      <footer className="border-t border-borde/30 bg-negro/50 mt-auto py-8">
+        <div className="max-w-7xl mx-auto px-4 text-center text-xs text-texto-secundario/50">
+          Las Mesas Cafe Bar · Tel. 928 896 097 · WhatsApp 601 163 933
         </div>
       </footer>
     </div>

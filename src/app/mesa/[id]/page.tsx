@@ -3,27 +3,26 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, Coffee, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Producto } from "@/lib/types";
 import ProductoCard from "@/components/ProductoCard";
 import Carrito from "@/components/Carrito";
 import { NUM_MESAS } from "@/lib/constantes";
 import { crearPedidoMesa } from "@/lib/n8n";
+import Header from "@/components/Header";
 
 export default function MesaPage() {
   const params = useParams();
   const router = useRouter();
   const mesaId = Number(params.id);
 
-  // Leer token de la URL: ?token=tok_prueba_mesa3
   const [tokenUrl, setTokenUrl] = useState<string | null>(null);
 
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Estado del carrito (solo para mostrar precios en pantalla)
   const [items, setItems] = useState<{
     id: string | number;
     nombre: string;
@@ -33,6 +32,7 @@ export default function MesaPage() {
 
   const [pagando, setPagando] = useState(false);
   const [pagoError, setPagoError] = useState<string | null>(null);
+  const [pagoExitoso, setPagoExitoso] = useState<string | null>(null);
 
   useEffect(() => {
     if (!mesaId || mesaId < 1 || mesaId > NUM_MESAS) {
@@ -40,7 +40,6 @@ export default function MesaPage() {
       return;
     }
 
-    // Leer token de los search params
     const searchParams = new URLSearchParams(window.location.search);
     const token = searchParams.get("token");
     setTokenUrl(token ?? null);
@@ -102,25 +101,25 @@ export default function MesaPage() {
 
   const pagar = async () => {
     if (!tokenUrl) {
-      setPagoError("Esta mesa no tiene token válido.");
+      setPagoError("Esta mesa no tiene token valido.");
       return;
     }
     if (items.length === 0) {
-      setPagoError("Añade al menos un producto al carrito.");
+      setPagoError("Anade al menos un producto al carrito.");
       return;
     }
 
     setPagando(true);
     setPagoError(null);
+    setPagoExitoso(null);
 
     try {
       const { url } = await crearPedidoMesa({
         mesa: mesaId,
         token: tokenUrl,
-        items: items.map((it) => ({ id: it.id, qty: it.qty })),
+        items: items.map((it) => ({ id: Number(it.id), qty: it.qty })),
       });
 
-      // n8n devolvió la URL de Stripe. Redirigir al cliente.
       window.location.href = url;
     } catch (err: any) {
       setPagoError(err.message || "Error al crear el pedido");
@@ -132,11 +131,12 @@ export default function MesaPage() {
   const reset = useCallback(() => {
     setItems([]);
     setPagoError(null);
+    setPagoExitoso(null);
   }, []);
 
   if (cargando) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-negro">
         <Loader2 className="w-10 h-10 text-dorado animate-spin" />
       </div>
     );
@@ -144,100 +144,132 @@ export default function MesaPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center py-12 px-6 text-center">
-        <AlertTriangle className="w-12 h-12 text-amber-600 mb-4" />
-        <h1 className="text-2xl font-serif font-bold text-negro mb-2">
+      <div className="min-h-screen flex flex-col items-center justify-center py-20 px-6 text-center bg-negro">
+        <AlertTriangle className="w-12 h-12 text-amber-500 mb-4" />
+        <h1 className="texto-elegante text-2xl font-bold text-blanco mb-2">
           Error cargando la mesa
         </h1>
-        <p className="text-negro/60 mb-6">{error}</p>
-        <Link href="/" className="btn-blanco">
+        <p className="text-texto-secundario mb-6">{error}</p>
+        <Link href="/" className="btn-dorado text-negro px-8 py-3">
           Volver al inicio
         </Link>
       </div>
     );
   }
 
+  const puedePagar = Boolean(tokenUrl) && items.length > 0;
+  const motivoSinPagar =
+    !tokenUrl
+      ? "Esta mesa no tiene token de acceso."
+      : items.length === 0
+        ? "Aneade productos al carrito."
+        : undefined;
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="border-b border-negro/5 bg-white sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2 text-xl font-serif font-bold tracking-tight">
-              <span className="text-dorado">LM</span> Las Mesas Café Bar
-            </Link>
-            <div className="hidden md:flex items-center gap-4 text-sm font-medium">
-              <span className="pill">
-                Mesa <span className="font-bold">{mesaId}</span>
-              </span>
-              <Link href="/" className="hover:text-dorado transition-colors">
-                Cambiar de mesa
-              </Link>
+    <div className="min-h-screen flex flex-col bg-negro">
+      <Header />
+
+      <main className="flex-1 pt-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+            <div>
+              <h1 className="texto-elegante text-3xl font-bold text-blanco">
+                Mesa <span className="text-dorado">{mesaId}</span>
+              </h1>
+              <p className="text-texto-secundario">
+                Carta · Selecciona lo que desees consumir
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {tokenUrl ? (
+                <span className="px-3 py-1 rounded-full bg-dorado/10 border border-dorado/20 text-dorado-claro text-xs font-bold">
+                  Token activo
+                </span>
+              ) : (
+                <span className="px-3 py-1 rounded-full bg-borde border border-borde text-texto-secundario text-xs font-bold">
+                  Sin token
+                </span>
+              )}
             </div>
           </div>
-        </div>
-      </header>
 
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <div className="flex-1 lg:w-3/5 space-y-8">
-            <h2 className="text-3xl font-serif font-bold text-negro mb-4">
-              Carta
-            </h2>
-            {productos.length === 0 ? (
-              <p className="text-negro/50">No hay productos disponibles.</p>
-            ) : (
-              <div className="grid md:grid-cols-3 gap-4">
-                {productos.map((p) => (
-                  <ProductoCard
-                    key={p.id}
-                    producto={p}
-                    onAgregar={(id) => agregar(id, p.nombre, p.precio)}
-                    cantidadActual={items.find((i) => i.id === p.id)?.qty ?? 0}
-                  />
-                ))}
+          {pagoExitoso && (
+            <div className="mb-8 p-6 rounded-3xl bg-dorado/10 border border-dorado/20 flex items-start gap-4 text-dorado-claro animate-fade-in">
+              <CheckCircle className="w-6 h-6 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-bold text-blanco mb-1">Pedido enviado</h3>
+                <p className="text-sm">
+                  Tu pedido ha sido creado correctamente. Seras redirigido a Stripe para completar el pago.
+                </p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          <div className="lg:w-2/5">
-            <Carrito
-              items={items.map((it) => ({
-                id: it.id,
-                nombre: it.nombre,
-                precio: it.precio,
-                qty: it.qty,
-              }))}
-              onAgregar={agregar}
-              onQuitarUno={quitarUno}
-              onEliminar={eliminar}
-              cargando={pagando}
-              onPagar={pagar}
-              tipo="mesa"
-              puedePagar={Boolean(tokenUrl) && items.length > 0}
-              motivoSinPagar={
-                !tokenUrl
-                  ? "Esta mesa no tiene token de acceso."
-                  : items.length === 0
-                  ? "Añade productos al carrito."
-                  : undefined
-              }
-            />
+          {pagoError && (
+            <div className="mb-8 p-6 rounded-3xl bg-rose-900/20 border border-rose-500/30 flex items-start gap-4 text-rose-400 animate-fade-in">
+              <AlertTriangle className="w-6 h-6 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-bold text-rose-200 mb-1">Error</h3>
+                <p className="text-sm">{pagoError}</p>
+                <button
+                  onClick={reset}
+                  className="mt-3 text-xs underline hover:text-rose-300"
+                >
+                  Intentar de nuevo
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col lg:flex-row gap-10">
+            <div className="flex-1 lg:w-3/5 space-y-10">
+              <h2 className="texto-elegante text-2xl font-bold text-blanco mb-6">
+                Carta
+              </h2>
+              {productos.length === 0 ? (
+                <div className="text-center py-20">
+                  <Coffee className="w-16 h-16 text-dorado/20 mx-auto mb-4" />
+                  <p className="text-texto-secundario">No hay productos disponibles.</p>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-3 gap-6">
+                  {productos.map((p) => (
+                    <ProductoCard
+                      key={p.id}
+                      producto={p}
+                      onAgregar={agregar}
+                      cantidadActual={items.find((i) => i.id === p.id)?.qty ?? 0}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="lg:w-2/5">
+              <Carrito
+                items={items.map((it) => ({
+                  id: Number(it.id),
+                  nombre: it.nombre,
+                  precio: it.precio,
+                  qty: it.qty,
+                }))}
+                onAgregar={agregar}
+                onQuitarUno={quitarUno}
+                onEliminar={eliminar}
+                cargando={pagando}
+                onPagar={pagar}
+                tipo="mesa"
+                puedePagar={puedePagar}
+                motivoSinPagar={motivoSinPagar}
+              />
+            </div>
           </div>
         </div>
       </main>
 
-      {pagoError && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-          <div className="bg-rose-50 border border-rose-100 text-rose-800 px-4 py-3 rounded-lg shadow-lg text-sm">
-            <AlertTriangle className="w-4 h-4 mr-2 inline" />
-            {pagoError}
-          </div>
-        </div>
-      )}
-
-      <footer className="border-t border-negro/5 bg-white mt-auto py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center text-sm text-negro/60">
-          Las Mesas Café Bar · Tel. 928 896 097
+      <footer className="border-t border-borde/30 bg-negro/50 mt-auto py-8">
+        <div className="max-w-7xl mx-auto px-4 text-center text-xs text-texto-secundario/50">
+          Las Mesas Cafe Bar · Tel. 928 896 097
         </div>
       </footer>
     </div>

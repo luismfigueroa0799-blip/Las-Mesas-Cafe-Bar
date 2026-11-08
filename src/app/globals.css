@@ -4,16 +4,18 @@
 
 @layer base {
   :root {
-    --petroleo: #15120e;
-    --petroleo-oscuro: #0b0a08;
+    --negro: #0a0a0a;
+    --negro-suave: #111111;
+    --negro-card: #141414;
     --dorado: #d4aa58;
     --dorado-claro: #e3c77f;
     --dorado-oscuro: #8a6a1f;
-    --crema: #f6efe0;
-    --negro: #15120e;
+    --blanco: #ffffff;
+    --texto: #e5e7eb;
+    --texto-secundario: #9ca3af;
+    --borde: #2a2a2a;
     --serif: Georgia, "Times New Roman", serif;
-    --sans: Arial, Helvetica, sans-serif;
-    --transicion: 0.3s ease;
+    --sans: Inter, system-ui, sans-serif;
   }
 
   * {
@@ -27,17 +29,16 @@
   }
 
   body {
-    overflow-x: clip;
     font-family: var(--sans);
-    background: var(--crema);
-    color: var(--negro);
+    background: var(--negro);
+    color: var(--texto);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 
-  img {
-    max-width: 100%;
-    display: block;
+  h1, h2, h3, h4, .font-serif {
+    font-family: var(--serif);
   }
 
   a {
@@ -56,37 +57,53 @@
     outline-offset: 3px;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  .font-serif {
-    font-family: var(--serif);
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--negro-suave);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--dorado-oscuro);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--dorado);
   }
 }
 
 @layer components {
-  .btn {
-    @apply inline-flex items-center justify-center min-h-[62px] px-8 py-0 border border-dorado font-bold text-xs tracking-widest uppercase transition-all duration-200 cursor-pointer;
+  .btn-dorado {
+    @apply inline-flex items-center justify-center min-h-[56px] px-8 py-0 bg-dorado text-negro font-bold text-xs tracking-widest uppercase transition-all duration-200 rounded-full shadow-dorado hover:shadow-dorado-hover hover:-translate-y-1 hover:bg-dorado-claro active:scale-95 cursor-pointer border-0 outline-none;
   }
-  .btn-primary {
-    @apply bg-dorado text-negro;
+
+  .btn-dorado-blanco {
+    @apply inline-flex items-center justify-center min-h-[56px] px-8 py-0 bg-dorado text-blanco font-bold text-xs tracking-widest uppercase transition-all duration-200 rounded-full shadow-dorado hover:shadow-dorado-hover hover:-translate-y-1 hover:bg-dorado-claro active:scale-95 cursor-pointer border-0 outline-none;
   }
-  .btn-primary:hover {
-    @apply bg-dorado-claro -translate-y-1;
-  }
-  .btn-outline {
-    @apply text-negro border-negro;
-  }
-  .btn-outline:hover {
-    @apply bg-negro text-dorado-claro -translate-y-1;
+
+  .btn-outline-dorado {
+    @apply inline-flex items-center justify-center min-h-[56px] px-8 py-0 bg-transparent text-dorado border border-dorado font-bold text-xs tracking-widest uppercase transition-all duration-200 rounded-full hover:bg-dorado hover:text-negro active:scale-95 cursor-pointer outline-none;
   }
 
   .card-producto {
-    @apply rounded-2xl overflow-hidden border border-negro/10 bg-white shadow-sm transition-shadow hover:shadow-md;
+    @apply relative rounded-3xl overflow-hidden bg-negro-card border border-borde transition-all duration-300 hover:border-dorado/50 hover:shadow-dorado hover:-translate-y-2;
   }
 
-  .pill {
-    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border border-negro/20 bg-white;
+  .pill-dorado {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border border-dorado/30 bg-dorado/10 text-dorado-claro;
+  }
+
+  .input-oscuro {
+    @apply w-full px-5 py-4 rounded-2xl bg-negro-suave border border-borde text-blanco placeholder-texto-secundario focus:outline-none focus:border-dorado focus:ring-1 focus:ring-dorado transition-all duration-200;
+  }
+
+  .texto-elegante {
+    font-family: var(--serif);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+
+  .glass-panel {
+    @apply bg-negro-card/80 backdrop-blur-xs border border-borde/50;
   }
 }
