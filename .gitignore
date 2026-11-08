@@ -8,3 +8,4 @@ qr/tokens.json
 *.log
 npm-debug.log*
 .DS_Store
+tsconfig.tsbuildinfo

@@ -7,11 +7,10 @@ create extension if not exists pgcrypto;
 
 -- ------------------------------------------------------------
 -- productos
--- El precio vive AQUÍ: única fuente de verdad. n8n recalcula
--- los totales desde esta tabla; el frontend nunca envía precios.
+-- Única fuente de verdad de precios. n8n recalcula desde aquí.
 -- ------------------------------------------------------------
 create table if not exists public.productos (
-  id          text primary key check (id ~ '^[a-z0-9_]+$'),  -- slug estable, ej. 'cappuccino'
+  id          text primary key check (id ~ '^[a-z0-9_]+$'),
   nombre      text not null,
   precio      numeric(10,2) not null check (precio >= 0),
   categoria   text not null default 'general',
@@ -21,8 +20,6 @@ create table if not exists public.productos (
 
 -- ------------------------------------------------------------
 -- mesas (8 mesas, cada una con su QR)
--- token_actual = token HMAC actual impreso en el QR de la mesa.
--- token_expira_at = caducidad del token (los QR se regeneran cada día).
 -- ------------------------------------------------------------
 create table if not exists public.mesas (
   id              integer primary key check (id between 1 and 8),
@@ -37,26 +34,41 @@ on conflict (id) do nothing;
 
 -- ------------------------------------------------------------
 -- pedidos
--- items guarda las líneas ENRIQUECIDAS por n8n (nombre, unit, qty,
--- subtotal). El frontend solo envía {id, qty} sin precios.
+-- Estados:
+--   pendiente_pago       → cliente aún no paga (checkout creado)
+--   pendiente_confirmacion → pagó, espera confirmación del personal
+--   pagado               → personal verificó (últimos pedidos pagados)
+--   preparando           → en cocina
+--   listo                → listo para servir
+--   entregado            → servido al cliente
+--   rechazado_reembolsado → rechazado, dinero devuelto
+--   cancelado            → nunca pagó (timeout)
 -- ------------------------------------------------------------
 create table if not exists public.pedidos (
   id                 uuid primary key default gen_random_uuid(),
   mesa_id            integer references public.mesas(id),
   tipo               text not null check (tipo in ('mesa', 'domicilio')),
   items              jsonb not null check (jsonb_typeof(items) = 'array'),
-                     -- [{"id":"cappuccino","nombre":"Cappuccino","unit":2.50,"qty":2,"subtotal":5.00}]
   total              numeric(10,2) not null check (total >= 0),
   estado             text not null default 'pendiente_confirmacion'
-                     check (estado in ('pendiente_confirmacion','pagado','preparando','entregado','cancelado')),
-                     -- 'cancelado': añadido para pedidos sin pagar o sesiones Stripe expiradas
+                     check (estado in (
+                       'pendiente_pago',
+                       'pendiente_confirmacion',
+                       'pagado',
+                       'preparando',
+                       'listo',
+                       'entregado',
+                       'rechazado_reembolsado',
+                       'cancelado'
+                     )),
   cliente_nombre     text,
   cliente_telefono   text,
   direccion          text,
   stripe_session_id  text unique,
+  stripe_payment_intent text,
+  pagado_at          timestamptz,
   created_at         timestamptz not null default now(),
 
-  -- coherencia tipo/mesa y datos de domicilio
   constraint pedidos_coherencia_check check (
     (tipo = 'mesa'      and mesa_id is not null) or
     (tipo = 'domicilio' and direccion is not null and cliente_telefono is not null and cliente_nombre is not null)
@@ -65,26 +77,38 @@ create table if not exists public.pedidos (
 
 create index if not exists pedidos_created_at_idx on public.pedidos (created_at desc);
 create index if not exists pedidos_estado_idx     on public.pedidos (estado);
+create index if not exists pedidos_stripe_session_idx on public.pedidos (stripe_session_id);
 
--- ============================================================
+-- ------------------------------------------------------------
+-- webhook_events (idempotencia de Stripe)
+-- Evita procesar dos veces el mismo evento si Stripe reintenta.
+-- ------------------------------------------------------------
+create table if not exists public.webhook_events (
+  id          text primary key,  -- stripe_event_id (evt_...)
+  tipo        text not null,
+  pedido_id   uuid references public.pedidos(id),
+  procesado_en timestamptz not null default now(),
+  payload     jsonb
+);
+
+-- ------------------------------------------------------------
 -- Seguridad a nivel de fila (RLS)
--- ============================================================
+-- ------------------------------------------------------------
 alter table public.productos enable row level security;
 alter table public.pedidos   enable row level security;
 alter table public.mesas     enable row level security;
+alter table public.webhook_events enable row level security;
 
--- Solo la carta es pública (lectura) y solo lo disponible:
+-- Carta pública (solo lectura, solo disponibles)
 drop policy if exists "carta_publica" on public.productos;
 create policy "carta_publica" on public.productos
   for select to anon, authenticated using (disponible = true);
 
--- pedidos y mesas: SIN políticas  =>  ni anon ni authenticated pueden
--- leerlas ni escribirlas con la clave pública. Toda mutación (crear
--- pedido, marcar pagado, rotar tokens) sale de n8n o de las rutas API
--- del servidor Next usando la clave service_role (que bypassa RLS).
+-- pedidos, mesas y webhook_events: SIN políticas públicas.
+-- Toda mutación sale de n8n o rutas API del servidor con service_role.
 
 -- ------------------------------------------------------------
--- Carta de ejemplo. Adapta nombres y precios a la carta real del bar.
+-- Carta de ejemplo
 -- ------------------------------------------------------------
 insert into public.productos (id, nombre, precio, categoria) values
   ('espresso',       'Espresso',                    1.40, 'café'),
