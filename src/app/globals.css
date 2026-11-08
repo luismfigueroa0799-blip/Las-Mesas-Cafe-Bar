@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-crema text-negro;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold transition-all duration-200 active:scale-95;
+  }
+  .btn-dorado {
+    @apply btn bg-dorado text-negro hover:bg-dorado/90 border border-dorado/30;
+  }
+  .btn-blanco {
+    @apply btn bg-white text-negro border border-negro/20 hover:bg-negro/5;
+  }
+  .card-producto {
+    @apply rounded-2xl overflow-hidden border border-negro/10 bg-white shadow-sm transition-shadow hover:shadow-md;
+  }
+  .pill {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border border-negro/20 bg-white;
+  }
+}

@@ -1,0 +1,10 @@
+.env.local
+.env.production.local
+node_modules/
+.next/
+out/
+qr/*.png
+qr/tokens.json
+*.log
+npm-debug.log*
+.DS_Store
