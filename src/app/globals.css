@@ -11,7 +11,7 @@
     --dorado-claro: #e3c77f;
     --dorado-oscuro: #8a6a1f;
     --blanco: #ffffff;
-    --texto: #e5e7eb;
+    --texto: #e5e7ib;
     --texto-secundario: #9ca3af;
     --borde: #2a2a2a;
     --serif: Georgia, "Times New Roman", serif;
@@ -105,5 +105,15 @@
 
   .glass-panel {
     @apply bg-negro-card/80 backdrop-blur-xs border border-borde/50;
+  }
+}
+
+@layer utilities {
+  .bg-portada {
+    @apply bg-[url('/fondo-portada.jpg')] no-repeat center/cover bg-fixed;
+  }
+
+  .bg-portada-fallback {
+    @apply bg-gradient-to-b from-[var(--negro)] to-[var(--negro-suave)];
   }
 }
