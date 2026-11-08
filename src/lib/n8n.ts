@@ -1,25 +1,17 @@
 /**
  * src/lib/n8n.ts
  *
- * Funciones para conectar el frontend con los webhooks de n8n.
+ * Funciones para conectar el frontend con los webhooks de n8n
+ * a través del proxy de Next.js (/api/pedidos).
+ *
+ * El proxy vive en el mismo origen, así que no hay problemas de CORS.
  * CRÍTICO: Nunca enviamos precios. Solo { id, qty } por ítem.
  */
 
-const N8N_BASE = "https://barcafeteria.app.n8n.cloud/webhook";
-
-export interface CarritoItem {
-  id: string | number;
-  nombre: string;
-  precio: number; // solo para mostrar en pantalla
-  qty: number;
-}
-
-/** Respuesta esperada de n8n: { url: string } */
 export interface N8nRespuesta {
   url: string;
 }
 
-/** Error estructurado devuelto por n8n */
 export interface N8nError {
   error?: string;
   mensaje?: string;
@@ -27,8 +19,9 @@ export interface N8nError {
 }
 
 /**
- * Envía un pedido de mesa a n8n.
- * Body: { mesa, token, items: [{ id, qty }] }
+ * Envía un pedido de mesa al proxy de Next.js.
+ * Body: { tipo: "mesa", mesa, token, items: [{ id, qty }] }
+ * El proxy reenvía a n8n/webhook/crear-pedido sin precios.
  */
 export async function crearPedidoMesa({
   mesa,
@@ -40,12 +33,13 @@ export async function crearPedidoMesa({
   items: { id: string | number; qty: number }[];
 }): Promise<N8nRespuesta> {
   const body = {
+    tipo: "mesa",
     mesa,
     token,
     items: items.map((it) => ({ id: it.id, qty: it.qty })),
   };
 
-  const res = await fetch(`${N8N_BASE}/crear-pedido`, {
+  const res = await fetch("/api/pedidos", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -69,8 +63,9 @@ export async function crearPedidoMesa({
 }
 
 /**
- * Envía un pedido a domicilio a n8n.
- * Body: { nombre, direccion, cliente_telefono, items: [{ id, qty }] }
+ * Envía un pedido a domicilio al proxy de Next.js.
+ * Body: { tipo: "domicilio", nombre, direccion, cliente_telefono, items: [{ id, qty }] }
+ * El proxy reenvía a n8n/webhook/crear-pedido-domicilio sin precios.
  */
 export async function crearPedidoDomicilio({
   nombre,
@@ -84,13 +79,14 @@ export async function crearPedidoDomicilio({
   items: { id: string | number; qty: number }[];
 }): Promise<N8nRespuesta> {
   const body = {
+    tipo: "domicilio",
     nombre,
     direccion,
     cliente_telefono,
     items: items.map((it) => ({ id: it.id, qty: it.qty })),
   };
 
-  const res = await fetch(`${N8N_BASE}/crear-pedido-domicilio`, {
+  const res = await fetch("/api/pedidos", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

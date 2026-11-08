@@ -3,25 +3,28 @@ import { NextResponse } from "next/server";
 /**
  * POST /api/pedidos
  *
- * Punto de entrada del frontend. NO recalcula precios ni valida tokens:
- * eso lo hace n8n (middleware de confianza). Esta ruta solo reenvía el
- * payload al webhook de n8n y devuelve su respuesta al cliente.
+ * Proxy del frontend hacia los webhooks de n8n.
+ * Vive en el mismo origen, así que el navegador puede llamarlo sin problemas de CORS.
  *
- * Body esperado:
+ * Body esperado del frontend:
  * {
- *   mesa?: number,          // 1-8 (solo tipo mesa)
- *   token?: string,         // token HMAC del QR (solo tipo mesa)
- *   items: [{ id: string, qty: number }],
  *   tipo: "mesa" | "domicilio",
- *   cliente_nombre?: string,
- *   cliente_telefono?: string,
- *   direccion?: string
+ *   mesa?: number,          // 1-8 (solo mesa)
+ *   token?: string,         // token HMAC del QR (solo mesa)
+ *   items: [{ id: string, qty: number }],
+ *   cliente_nombre?: string,   // (solo domicilio)
+ *   cliente_telefono?: string, // (solo domicilio)
+ *   direccion?: string         // (solo domicilio)
  * }
+ *
+ * El proxy construye el payload limpio para n8n (SIN precios, SIN tipo)
+ * y lo reenvía al webhook correspondiente. La validación crítica de precios,
+ * token y horario vive en n8n.
  */
 export async function POST(req: Request) {
-  const n8nUrl = process.env.N8N_WEBHOOK_URL;
+  const n8nBase = process.env.N8N_WEBHOOK_URL;
 
-  if (!n8nUrl) {
+  if (!n8nBase) {
     return NextResponse.json(
       { ok: false, motivo: "Webhook de n8n no configurado" },
       { status: 500 }
@@ -38,10 +41,18 @@ export async function POST(req: Request) {
     );
   }
 
-  // Validaciones muy básicas en el borde (defensa en profundidad).
-  // La validación crítica (precios, token, horario) vive en n8n.
-  const { tipo, items, mesa, token } = body;
+  const {
+    tipo,
+    items,
+    mesa,
+    token,
+    cliente_nombre,
+    cliente_telefono,
+    direccion,
+  } = body;
 
+  // Validaciones básicas en el borde (defensa en profundidad).
+  // La validación crítica (precios, token, horario) vive en n8n.
   if (!tipo || !["mesa", "domicilio"].includes(tipo)) {
     return NextResponse.json(
       { ok: false, motivo: "tipo inválido" },
@@ -65,6 +76,11 @@ export async function POST(req: Request) {
     }
   }
 
+  const itemsLimpios = items.map((it) => ({ id: it.id, qty: it.qty }));
+
+  let payload: any;
+  let webhookUrl: string;
+
   if (tipo === "mesa") {
     if (!mesa || mesa < 1 || mesa > 8) {
       return NextResponse.json(
@@ -78,13 +94,42 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    // Payload exacto que n8n espera para mesas (sin precios)
+    payload = { mesa, token, items: itemsLimpios };
+
+    // Webhook específico para mesas
+    webhookUrl =
+      process.env.N8N_WEBHOOK_MESA_URL ??
+      `${n8nBase.replace(/\/+$/, "")}/crear-pedido`;
+  } else {
+    // domicilio
+    if (!cliente_nombre || !cliente_telefono || !direccion) {
+      return NextResponse.json(
+        { ok: false, motivo: "nombre, teléfono y dirección requeridos" },
+        { status: 400 }
+      );
+    }
+
+    // Payload exacto que n8n espera para domicilio (sin precios)
+    payload = {
+      nombre: cliente_nombre,
+      direccion,
+      cliente_telefono,
+      items: itemsLimpios,
+    };
+
+    // Webhook específico para domicilio
+    webhookUrl =
+      process.env.N8N_WEBHOOK_DOMICILIO_URL ??
+      `${n8nBase.replace(/\/+$/, "")}/crear-pedido-domicilio`;
   }
 
   try {
-    const resp = await fetch(n8nUrl, {
+    const resp = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
 
     let data: any;
