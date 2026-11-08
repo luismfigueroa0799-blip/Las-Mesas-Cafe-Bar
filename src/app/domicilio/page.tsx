@@ -2,25 +2,33 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { MapPin, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { Producto, ItemPedido } from "@/lib/types";
+import { Producto } from "@/lib/types";
 import ProductoCard from "@/components/ProductoCard";
 import Carrito from "@/components/Carrito";
+import { crearPedidoDomicilio } from "@/lib/n8n";
 
 export default function DomicilioPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [items, setItems] = useState<ItemPedido[]>([]);
+
+  // Estado del carrito (solo para mostrar precios en pantalla)
+  const [items, setItems] = useState<{
+    id: string | number;
+    nombre: string;
+    precio: number;
+    qty: number;
+  }[]>([]);
+
+  // Datos de entrega
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const [envioError, setEnvioError] = useState<string | null>(null);
-  const [enviado, setEnviado] = useState<{ ok: boolean; id?: string } | null>(
-    null
-  );
+
+  const [pagando, setPagando] = useState(false);
+  const [pagoError, setPagoError] = useState<string | null>(null);
 
   useEffect(() => {
     const cargar = async () => {
@@ -41,17 +49,22 @@ export default function DomicilioPage() {
     cargar();
   }, []);
 
-  const agregar = useCallback((id: string) => {
-    setItems((prev) => {
-      const existente = prev.find((i) => i.id === id);
-      if (existente) {
-        return prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i));
-      }
-      return [...prev, { id, qty: 1 }];
-    });
-  }, []);
+  const agregar = useCallback(
+    (id: string | number, nombreProd: string, precio: number) => {
+      setItems((prev) => {
+        const existente = prev.find((i) => i.id === id);
+        if (existente) {
+          return prev.map((i) =>
+            i.id === id ? { ...i, qty: i.qty + 1 } : i
+          );
+        }
+        return [...prev, { id, nombre: nombreProd, precio, qty: 1 }];
+      });
+    },
+    []
+  );
 
-  const quitarUno = useCallback((id: string) => {
+  const quitarUno = useCallback((id: string | number) => {
     setItems((prev) => {
       const existente = prev.find((i) => i.id === id);
       if (!existente) return prev;
@@ -64,70 +77,53 @@ export default function DomicilioPage() {
     });
   }, []);
 
-  const eliminar = useCallback((id: string) => {
+  const eliminar = useCallback((id: string | number) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
   }, []);
 
+  const pagar = async () => {
+    setPagando(true);
+    setPagoError(null);
+
+    if (!nombre.trim() || !telefono.trim() || !direccion.trim()) {
+      setPagoError("Completa nombre, teléfono y dirección.");
+      setPagando(false);
+      return;
+    }
+    if (items.length === 0) {
+      setPagoError("Añade al menos un producto al carrito.");
+      setPagando(false);
+      return;
+    }
+
+    try {
+      const { url } = await crearPedidoDomicilio({
+        nombre: nombre.trim(),
+        direccion: direccion.trim(),
+        cliente_telefono: telefono.trim(),
+        items: items.map((it) => ({ id: it.id, qty: it.qty })),
+      });
+
+      window.location.href = url;
+    } catch (err: any) {
+      setPagoError(err.message || "Error al crear el pedido");
+    } finally {
+      setPagando(false);
+    }
+  };
+
   const reset = useCallback(() => {
     setItems([]);
-    setEnviado(null);
-    setEnvioError(null);
+    setPagoError(null);
     setNombre("");
     setTelefono("");
     setDireccion("");
   }, []);
 
-  const enviar = async () => {
-    setEnviando(true);
-    setEnvioError(null);
-    try {
-      const res = await fetch("/api/pedidos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mesa: null,
-          items: items.map((i) => ({ id: i.id, qty: i.qty })),
-          tipo: "domicilio",
-          cliente_nombre: nombre.trim(),
-          cliente_telefono: telefono.trim(),
-          direccion: direccion.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data.motivo || "No se pudo crear el pedido");
-      }
-
-      const stripeRes = await fetch("/api/stripe-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pedidoId: data.pedido_id,
-          items: data.items,
-          totalCents: data.total_cents,
-          tipo: "domicilio",
-          mesaId: null,
-          cliente: { nombre, telefono, direccion },
-        }),
-      });
-      const stripeData = await stripeRes.json();
-      if (!stripeRes.ok || !stripeData.url) {
-        throw new Error(stripeData.error || "No se pudo iniciar el pago");
-      }
-
-      setEnviado({ ok: true, id: data.pedido_id });
-      window.location.href = stripeData.url;
-    } catch (err: any) {
-      setEnvioError(err.message || "Error inesperado");
-    } finally {
-      setEnviando(false);
-    }
-  };
-
   if (cargando) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-dorado border-t-transparent rounded-full animate-spin" />
+        <Loader2 className="w-10 h-10 text-dorado animate-spin" />
       </div>
     );
   }
@@ -180,7 +176,7 @@ export default function DomicilioPage() {
                   <ProductoCard
                     key={p.id}
                     producto={p}
-                    onAgregar={agregar}
+                    onAgregar={(id) => agregar(id, p.nombre, p.precio)}
                     cantidadActual={items.find((i) => i.id === p.id)?.qty ?? 0}
                     esDomicilio
                   />
@@ -191,17 +187,31 @@ export default function DomicilioPage() {
 
           <div className="lg:w-2/5">
             <Carrito
-              productos={productos}
-              items={items}
+              items={items.map((it) => ({
+                id: it.id,
+                nombre: it.nombre,
+                precio: it.precio,
+                qty: it.qty,
+              }))}
               onAgregar={agregar}
               onQuitarUno={quitarUno}
               onEliminar={eliminar}
-              onEnviar={enviar}
+              cargando={pagando}
+              onPagar={pagar}
               tipo="domicilio"
-              cargando={enviando}
-              error={envioError}
-              enviado={enviado}
-              onReset={reset}
+              puedePagar={
+                items.length > 0 &&
+                Boolean(nombre.trim()) &&
+                Boolean(telefono.trim()) &&
+                Boolean(direccion.trim())
+              }
+              motivoSinPagar={
+                items.length === 0
+                  ? "Añade productos al carrito."
+                  : !nombre.trim() || !telefono.trim() || !direccion.trim()
+                  ? "Completa nombre, teléfono y dirección."
+                  : undefined
+              }
               nombre={nombre}
               setNombre={setNombre}
               telefono={telefono}
@@ -212,6 +222,15 @@ export default function DomicilioPage() {
           </div>
         </div>
       </main>
+
+      {pagoError && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+          <div className="bg-rose-50 border border-rose-100 text-rose-800 px-4 py-3 rounded-lg shadow-lg text-sm">
+            <AlertTriangle className="w-4 h-4 mr-2 inline" />
+            {pagoError}
+          </div>
+        </div>
+      )}
 
       <footer className="border-t border-negro/5 bg-white mt-auto py-8">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-negro/60">

@@ -5,32 +5,45 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { Producto, ItemPedido } from "@/lib/types";
+import { Producto } from "@/lib/types";
 import ProductoCard from "@/components/ProductoCard";
 import Carrito from "@/components/Carrito";
 import { NUM_MESAS } from "@/lib/constantes";
+import { crearPedidoMesa } from "@/lib/n8n";
 
 export default function MesaPage() {
   const params = useParams();
   const router = useRouter();
   const mesaId = Number(params.id);
 
+  // Leer token de la URL: ?token=tok_prueba_mesa3
+  const [tokenUrl, setTokenUrl] = useState<string | null>(null);
+
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [mesaToken, setMesaToken] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [items, setItems] = useState<ItemPedido[]>([]);
-  const [enviando, setEnviando] = useState(false);
-  const [envioError, setEnvioError] = useState<string | null>(null);
-  const [enviado, setEnviado] = useState<{ ok: boolean; id?: string } | null>(
-    null
-  );
+
+  // Estado del carrito (solo para mostrar precios en pantalla)
+  const [items, setItems] = useState<{
+    id: string | number;
+    nombre: string;
+    precio: number;
+    qty: number;
+  }[]>([]);
+
+  const [pagando, setPagando] = useState(false);
+  const [pagoError, setPagoError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!mesaId || mesaId < 1 || mesaId > NUM_MESAS) {
       router.push("/");
       return;
     }
+
+    // Leer token de los search params
+    const searchParams = new URLSearchParams(window.location.search);
+    const token = searchParams.get("token");
+    setTokenUrl(token ?? null);
 
     let montado = true;
     const cargar = async () => {
@@ -42,23 +55,8 @@ export default function MesaPage() {
           .order("nombre");
         if (eProd) throw eProd;
         if (montado) setProductos(prods ?? []);
-
-        const { data: mesa, error: eMesa } = await supabase
-          .from("mesas")
-          .select("token_actual, token_expira_at")
-          .eq("id", mesaId)
-          .single();
-        if (eMesa) throw eMesa;
-        if (montado) {
-          setMesaToken(mesa?.token_actual ?? null);
-          if (!mesa?.token_actual) {
-            setError(
-              "Esta mesa no tiene QR asignado aún. Contacta con el personal."
-            );
-          }
-        }
       } catch (err: any) {
-        if (montado) setError(err.message || "No se pudo cargar la mesa");
+        if (montado) setError(err.message || "No se pudo cargar la carta");
       } finally {
         if (montado) setCargando(false);
       }
@@ -70,17 +68,22 @@ export default function MesaPage() {
     };
   }, [mesaId, router]);
 
-  const agregar = useCallback((id: string) => {
-    setItems((prev) => {
-      const existente = prev.find((i) => i.id === id);
-      if (existente) {
-        return prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i));
-      }
-      return [...prev, { id, qty: 1 }];
-    });
-  }, []);
+  const agregar = useCallback(
+    (id: string | number, nombre: string, precio: number) => {
+      setItems((prev) => {
+        const existente = prev.find((i) => i.id === id);
+        if (existente) {
+          return prev.map((i) =>
+            i.id === id ? { ...i, qty: i.qty + 1 } : i
+          );
+        }
+        return [...prev, { id, nombre, precio, qty: 1 }];
+      });
+    },
+    []
+  );
 
-  const quitarUno = useCallback((id: string) => {
+  const quitarUno = useCallback((id: string | number) => {
     setItems((prev) => {
       const existente = prev.find((i) => i.id === id);
       if (!existente) return prev;
@@ -93,64 +96,43 @@ export default function MesaPage() {
     });
   }, []);
 
-  const eliminar = useCallback((id: string) => {
+  const eliminar = useCallback((id: string | number) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
   }, []);
 
-  const reset = useCallback(() => {
-    setItems([]);
-    setEnviado(null);
-    setEnvioError(null);
-  }, []);
-
-  const enviar = async () => {
-    if (!mesaToken) {
-      setEnvioError("Esta mesa no tiene token de QR válido.");
+  const pagar = async () => {
+    if (!tokenUrl) {
+      setPagoError("Esta mesa no tiene token válido.");
       return;
     }
-    setEnviando(true);
-    setEnvioError(null);
+    if (items.length === 0) {
+      setPagoError("Añade al menos un producto al carrito.");
+      return;
+    }
+
+    setPagando(true);
+    setPagoError(null);
+
     try {
-      const res = await fetch("/api/pedidos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mesa: mesaId,
-          token: mesaToken,
-          items: items.map((i) => ({ id: i.id, qty: i.qty })),
-          tipo: "mesa",
-        }),
+      const { url } = await crearPedidoMesa({
+        mesa: mesaId,
+        token: tokenUrl,
+        items: items.map((it) => ({ id: it.id, qty: it.qty })),
       });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data.motivo || "No se pudo crear el pedido");
-      }
 
-      // Crear sesión Stripe con los datos enriquecidos devueltos por n8n
-      const stripeRes = await fetch("/api/stripe-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pedidoId: data.pedido_id,
-          items: data.items,
-          totalCents: data.total_cents,
-          tipo: "mesa",
-          mesaId,
-        }),
-      });
-      const stripeData = await stripeRes.json();
-      if (!stripeRes.ok || !stripeData.url) {
-        throw new Error(stripeData.error || "No se pudo iniciar el pago");
-      }
-
-      setEnviado({ ok: true, id: data.pedido_id });
-      window.location.href = stripeData.url;
+      // n8n devolvió la URL de Stripe. Redirigir al cliente.
+      window.location.href = url;
     } catch (err: any) {
-      setEnvioError(err.message || "Error inesperado");
+      setPagoError(err.message || "Error al crear el pedido");
     } finally {
-      setEnviando(false);
+      setPagando(false);
     }
   };
+
+  const reset = useCallback(() => {
+    setItems([]);
+    setPagoError(null);
+  }, []);
 
   if (cargando) {
     return (
@@ -160,14 +142,15 @@ export default function MesaPage() {
     );
   }
 
-  if (error || !mesaToken) {
+  if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center py-12 px-6 text-center">
         <AlertTriangle className="w-12 h-12 text-amber-600 mb-4" />
         <h1 className="text-2xl font-serif font-bold text-negro mb-2">
-          {error || "Mesa no disponible"}
+          Error cargando la mesa
         </h1>
-        <Link href="/" className="btn-blanco mt-6">
+        <p className="text-negro/60 mb-6">{error}</p>
+        <Link href="/" className="btn-blanco">
           Volver al inicio
         </Link>
       </div>
@@ -208,7 +191,7 @@ export default function MesaPage() {
                   <ProductoCard
                     key={p.id}
                     producto={p}
-                    onAgregar={agregar}
+                    onAgregar={(id) => agregar(id, p.nombre, p.precio)}
                     cantidadActual={items.find((i) => i.id === p.id)?.qty ?? 0}
                   />
                 ))}
@@ -218,28 +201,39 @@ export default function MesaPage() {
 
           <div className="lg:w-2/5">
             <Carrito
-              productos={productos}
-              items={items}
+              items={items.map((it) => ({
+                id: it.id,
+                nombre: it.nombre,
+                precio: it.precio,
+                qty: it.qty,
+              }))}
               onAgregar={agregar}
               onQuitarUno={quitarUno}
               onEliminar={eliminar}
-              onEnviar={enviar}
+              cargando={pagando}
+              onPagar={pagar}
               tipo="mesa"
-              mesaId={mesaId}
-              cargando={enviando}
-              error={envioError}
-              enviado={enviado}
-              onReset={reset}
-              nombre=""
-              setNombre={() => {}}
-              telefono=""
-              setTelefono={() => {}}
-              direccion=""
-              setDireccion={() => {}}
+              puedePagar={Boolean(tokenUrl) && items.length > 0}
+              motivoSinPagar={
+                !tokenUrl
+                  ? "Esta mesa no tiene token de acceso."
+                  : items.length === 0
+                  ? "Añade productos al carrito."
+                  : undefined
+              }
             />
           </div>
         </div>
       </main>
+
+      {pagoError && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+          <div className="bg-rose-50 border border-rose-100 text-rose-800 px-4 py-3 rounded-lg shadow-lg text-sm">
+            <AlertTriangle className="w-4 h-4 mr-2 inline" />
+            {pagoError}
+          </div>
+        </div>
+      )}
 
       <footer className="border-t border-negro/5 bg-white mt-auto py-8">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-negro/60">
