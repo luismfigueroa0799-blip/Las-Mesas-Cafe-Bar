@@ -1,119 +1,227 @@
+/* Tailwind Directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --negro: #0a0a0a;
-    --negro-suave: #111111;
-    --negro-card: #141414;
-    --dorado: #d4aa58;
-    --dorado-claro: #e3c77f;
-    --dorado-oscuro: #8a6a1f;
-    --blanco: #ffffff;
-    --texto: #e5e7ib;
-    --texto-secundario: #9ca3af;
-    --borde: #2a2a2a;
-    --serif: Georgia, "Times New Roman", serif;
-    --sans: Inter, system-ui, sans-serif;
-  }
+/* Custom Properties */
+:root {
+  --negro: #0a0a0a;
+  --dorado: #d4aa58;
+  --crema: #f6efe0;
+  --texto-blanco: #ffffff;
+  --texto-secundario: #9ca3af;
+  --borde: #2a2a2a;
+}
 
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
+/* Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-  html {
-    scroll-behavior: smooth;
-  }
+html {
+  scroll-behavior: smooth;
+}
 
-  body {
-    font-family: var(--sans);
-    background: var(--negro);
-    color: var(--texto);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-  }
+body {
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--negro);
+  color: var(--texto-blanco);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
 
-  h1, h2, h3, h4, .font-serif {
-    font-family: var(--serif);
-  }
+/* Serif fallback for headings */
+h1, h2, h3, h4, .font-serif {
+  font-family: "Georgia", "Times New Roman", serif;
+}
 
-  a {
-    color: inherit;
-    text-decoration: none;
-  }
+a {
+  color: inherit;
+  text-decoration: none;
+}
 
-  button,
-  input,
-  textarea {
-    font: inherit;
-  }
+button,
+input,
+textarea {
+  font: inherit;
+}
 
-  :focus-visible {
-    outline: 2px solid var(--dorado);
-    outline-offset: 3px;
-  }
+:focus-visible {
+  outline: 2px solid var(--dorado);
+  outline-offset: 3px;
+}
 
-  ::-webkit-scrollbar {
-    width: 8px;
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--negro);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--dorado);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--dorado);
+}
+
+/* Custom Components */
+
+/* Botones */
+.btn-dorado {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 24px;
+  background: var(--dorado);
+  color: var(--negro);
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 28px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(212, 170, 88, 0.3);
+}
+
+.btn-dorado:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 170, 88, 0.4);
+}
+
+.btn-dorado:active {
+  transform: translateY(1px);
+}
+
+.btn-outline-dorado {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 24px;
+  background: transparent;
+  color: var(--dorado);
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 2px solid var(--dorado);
+  border-radius: 28px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-outline-dorado:hover {
+  background: var(--dorado);
+  color: var(--negro);
+}
+
+/* Tarjetas de producto */
+.card-producto {
+  background: #141414;
+  border: 1px solid var(--borde);
+  border-radius: 24px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.card-producto:hover {
+  border-color: var(--dorado);
+  box-shadow: 0 0 20px rgba(212, 170, 88, 0.15);
+}
+
+/* Texto elegante */
+.texto-elegante {
+  font-family: "Georgia", "Times New Roman", serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* Píldoras */
+.pill-dorado {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  background: rgba(212, 170, 88, 0.1);
+  color: var(--dorado);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  border-radius: 20px;
+  border: 1px solid rgba(212, 170, 88, 0.3);
+}
+
+/* Inputs */
+.input-oscuro {
+  width: 100%;
+  padding: 16px 20px;
+  background: #111111;
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  color: var(--texto-blanco);
+  font-family: "Inter", sans-serif;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.input-oscuro:focus {
+  outline: none;
+  border-color: var(--dorado);
+  box-shadow: 0 0 0 3px rgba(212, 170, 88, 0.15);
+}
+
+/* Glass panel */
+.glass-panel {
+  background: rgba(20, 20, 20, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--borde)/50;
+  border-radius: 20px;
+}
+
+/* Badge/Tag */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  background: var(--dorado);
+  color: var(--negro);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 4px;
+}
+
+/* Status dots */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dorado);
+}
+
+/* Responsive utilities */
+@media (max-width: 640px) {
+  .mobile-full-width {
+    width: 100% !important;
   }
-  ::-webkit-scrollbar-track {
-    background: var(--negro-suave);
-  }
-  ::-webkit-scrollbar-thumb {
-    background: var(--dorado-oscuro);
-    border-radius: 4px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--dorado);
+  
+  .mobile-grid-1 {
+    grid-template-columns: 1fr !important;
   }
 }
 
-@layer components {
-  .btn-dorado {
-    @apply inline-flex items-center justify-center min-h-[56px] px-8 py-0 bg-dorado text-negro font-bold text-xs tracking-widest uppercase transition-all duration-200 rounded-full shadow-dorado hover:shadow-dorado-hover hover:-translate-y-1 hover:bg-dorado-claro active:scale-95 cursor-pointer border-0 outline-none;
-  }
-
-  .btn-dorado-blanco {
-    @apply inline-flex items-center justify-center min-h-[56px] px-8 py-0 bg-dorado text-blanco font-bold text-xs tracking-widest uppercase transition-all duration-200 rounded-full shadow-dorado hover:shadow-dorado-hover hover:-translate-y-1 hover:bg-dorado-claro active:scale-95 cursor-pointer border-0 outline-none;
-  }
-
-  .btn-outline-dorado {
-    @apply inline-flex items-center justify-center min-h-[56px] px-8 py-0 bg-transparent text-dorado border border-dorado font-bold text-xs tracking-widest uppercase transition-all duration-200 rounded-full hover:bg-dorado hover:text-negro active:scale-95 cursor-pointer outline-none;
-  }
-
-  .card-producto {
-    @apply relative rounded-3xl overflow-hidden bg-negro-card border border-borde transition-all duration-300 hover:border-dorado/50 hover:shadow-dorado hover:-translate-y-2;
-  }
-
-  .pill-dorado {
-    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border border-dorado/30 bg-dorado/10 text-dorado-claro;
-  }
-
-  .input-oscuro {
-    @apply w-full px-5 py-4 rounded-2xl bg-negro-suave border border-borde text-blanco placeholder-texto-secundario focus:outline-none focus:border-dorado focus:ring-1 focus:ring-dorado transition-all duration-200;
-  }
-
-  .texto-elegante {
-    font-family: var(--serif);
-    font-weight: 400;
-    letter-spacing: -0.02em;
-  }
-
-  .glass-panel {
-    @apply bg-negro-card/80 backdrop-blur-xs border border-borde/50;
-  }
-}
-
-@layer utilities {
-  .bg-portada {
-    @apply bg-[url('/fondo-portada.jpg')] no-repeat center/cover bg-fixed;
-  }
-
-  .bg-portada-fallback {
-    @apply bg-gradient-to-b from-[var(--negro)] to-[var(--negro-suave)];
+@media (min-width: 641px) and (max-width: 1024px) {
+  .tablet-grid-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }
