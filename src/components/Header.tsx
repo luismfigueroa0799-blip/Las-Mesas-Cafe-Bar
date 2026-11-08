@@ -43,7 +43,8 @@ export default function Header() {
               className="text-sm font-medium text-texto-secundario hover:text-dorado transition-colors flex items-center gap-1.5"
             >
               <MapPin className="w-4 h-4" />
-              Domicilio
+              Carta
+             Domicilio
             </Link>
           </nav>
 
@@ -61,7 +62,8 @@ export default function Header() {
               className="hidden sm:inline-flex btn-dorado-blanco text-xs"
             >
               <Phone className="w-4 h-4 mr-2" />
-              Pedir a domicilio
+              Pedir a Carta
+             Domicilio
             </Link>
           </div>
         </div>
@@ -93,7 +95,8 @@ export default function Header() {
               className="text-lg font-medium text-texto hover:text-dorado transition-colors block flex items-center gap-3"
             >
               <MapPin className="w-5 h-5 text-dorado" />
-              Pedir a domicilio
+              Pedir a Carta
+             Domicilio
             </Link>
           </div>
         </div>
@@ -101,3 +104,4 @@ export default function Header() {
     </header>
   );
 }
+
