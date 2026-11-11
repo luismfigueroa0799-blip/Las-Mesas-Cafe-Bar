@@ -5,5 +5,5 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
 });
 
 export const STRIPE_SUCCESS_URL =
-  process.env.NEXT_PUBLIC_APP_URL + "/pedido-exitoso";
+  process.env.NEXT_PUBLIC_APP_URL + "/pedido-confirmado";
 export const STRIPE_CANCEL_URL = process.env.NEXT_PUBLIC_APP_URL + "/carrito";

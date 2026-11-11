@@ -125,6 +125,61 @@ textarea {
   color: var(--negro);
 }
 
+/* Botón claro (contraste sobre fondo oscuro) */
+.btn-blanco {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 24px;
+  background: var(--texto-blanco);
+  color: var(--negro);
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 28px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-blanco:hover {
+  background: var(--dorado);
+  box-shadow: 0 6px 20px rgba(212, 170, 88, 0.35);
+  transform: translateY(-2px);
+}
+
+/* Texto sutil (acciones secundarias como "Vaciar carrito") */
+.texto-sutil {
+  background: transparent;
+  border: none;
+  color: var(--texto-secundario);
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.texto-sutil:hover {
+  color: var(--dorado);
+}
+
+/* Etiqueta de error/sugerencia dentro del carrito */
+.aviso-carrito {
+  padding: 10px 14px;
+  background: rgba(212, 170, 88, 0.08);
+  border-left: 3px solid var(--dorado);
+  color: var(--dorado);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 /* Tarjetas de producto */
 .card-producto {
   background: #141414;

@@ -256,6 +256,7 @@ export default function MesaPage() {
                 onAgregar={agregar}
                 onQuitarUno={quitarUno}
                 onEliminar={eliminar}
+                onVaciar={() => setItems([])}
                 cargando={pagando}
                 onPagar={pagar}
                 tipo="mesa"

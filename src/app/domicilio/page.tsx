@@ -204,6 +204,12 @@ export default function DomicilioPage() {
                 onAgregar={agregar}
                 onQuitarUno={quitarUno}
                 onEliminar={eliminar}
+                onVaciar={() => {
+                  setItems([]);
+                  setNombre("");
+                  setTelefono("");
+                  setDireccion("");
+                }}
                 cargando={pagando}
                 onPagar={pagar}
                 tipo="domicilio"

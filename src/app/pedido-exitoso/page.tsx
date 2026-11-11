@@ -5,7 +5,7 @@ import Link from "next/link";
 import { CheckCircle, CreditCard, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
-function PedidoExitosoContenido() {
+function PedidoConfirmadoContenido() {
   const searchParams = useSearchParams();
   const pedidoId = searchParams.get("id") ?? "";
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -17,40 +17,49 @@ function PedidoExitosoContenido() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center py-12 px-6 text-center">
-      <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6 text-green-600">
+    <div className="min-h-screen flex flex-col items-center justify-center py-12 px-6 text-center bg-negro">
+      <div className="w-20 h-20 rounded-full bg-dorado/15 border border-dorado/40 flex items-center justify-center mx-auto mb-6 text-dorado">
         <CheckCircle className="w-10 h-10" />
       </div>
-      <h1 className="text-3xl font-serif font-bold text-negro mb-2">
+
+      <h1 className="texto-elegante text-3xl font-bold text-blanco mb-2">
         ¡Pedido recibido!
       </h1>
-      <p className="text-negro/60 mb-6">
-        Pedido <span className="font-mono font-bold">#{pedidoId}</span>
-        {" · "}
+
+      <p className="text-texto-secundario mb-8">
+        {pedidoId ? (
+          <>
+            Pedido <span className="font-mono font-bold text-dorado">#{pedidoId}</span>
+          </>
+        ) : (
+          "Estamos confirmando tu pedido"
+        )}
         {sessionId ? (
           <>
-            Sesión de pago{" "}
-            <span className="font-mono text-xs text-negro/40">
+            {" · "}Sesión{" "}
+            <span className="font-mono text-xs text-texto-secundario/70">
               …{sessionId.slice(-6)}
             </span>
           </>
-        ) : (
-          <span className="text-xs text-negro/40">en validación</span>
-        )}
+        ) : null}
       </p>
-      <div className="bg-white p-6 rounded-2xl border border-negro/5 shadow-sm inline-block">
+
+      <div className="bg-[#141414] border border-borde rounded-3xl p-8 inline-block max-w-md">
         <div className="flex items-center gap-3 mb-4">
           <CreditCard className="w-5 h-5 text-dorado" />
-          <span className="font-semibold text-negro">Pago con tarjeta</span>
+          <span className="font-semibold text-blanco">Pago con tarjeta</span>
         </div>
-        <p className="text-sm text-negro/50 mb-4">
+
+        <p className="text-sm text-texto-secundario mb-4">
           Completa el pago con tarjeta. Una vez pagado, el personal del bar
           confirmará el pedido y lo enviará a cocina.
         </p>
-        <p className="text-xs text-negro/30 mb-4 uppercase tracking-wider">
+
+        <p className="text-xs text-dorado/70 mb-6 uppercase tracking-wider">
           Estado: pendiente de confirmación
         </p>
-        <Link href="/" className="btn-blanco">
+
+        <Link href="/" className="btn-dorado">
           Volver al inicio
         </Link>
       </div>
@@ -58,16 +67,16 @@ function PedidoExitosoContenido() {
   );
 }
 
-export default function PedidoExitoso() {
+export default function PedidoConfirmado() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center bg-negro">
           <Loader2 className="w-10 h-10 text-dorado animate-spin" />
         </div>
       }
     >
-      <PedidoExitosoContenido />
+      <PedidoConfirmadoContenido />
     </Suspense>
   );
 }

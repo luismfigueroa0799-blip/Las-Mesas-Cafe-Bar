@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
+import { CreditCard, Trash2, User, MapPin, Phone } from "lucide-react";
 
 type ItemCarrito = {
   id: number;
@@ -19,6 +20,7 @@ type CarritoProps = {
   onAgregar?: (id: number, nombreProd: string, precio: number) => void;
   onQuitarUno?: (id: number) => void;
   onEliminar?: (id: number) => void;
+  onVaciar?: () => void;
   tipo?: "mesa" | "domicilio";
   puedePagar?: boolean;
   motivoSinPagar?: string;
@@ -30,11 +32,33 @@ type CarritoProps = {
   setDireccion?: React.Dispatch<React.SetStateAction<string>>;
 };
 
-export default function Carrito({ mesa, token, items: propItems, total: propTotal, cargando }: CarritoProps) {
+export default function Carrito({
+  mesa,
+  token,
+  items: propItems,
+  total: propTotal,
+  cargando,
+  onPagar,
+  onQuitarUno,
+  onEliminar,
+  onVaciar,
+  tipo = "mesa",
+  puedePagar,
+  motivoSinPagar,
+  nombre = "",
+  setNombre,
+  telefono = "",
+  setTelefono,
+  direccion = "",
+  setDireccion,
+}: CarritoProps) {
   // Usar items del prop si están disponibles, sino usar estado interno
   const [internalItems, setInternalItems] = useState<ItemCarrito[]>([]);
   const cartItems = propItems || internalItems;
-  const total = propTotal !== undefined ? propTotal : cartItems.reduce((acc, item) => acc + item.precio * item.qty, 0);
+  const total =
+    propTotal !== undefined
+      ? propTotal
+      : cartItems.reduce((acc, item) => acc + item.precio * item.qty, 0);
 
   const agregarProducto = (producto: Omit<ItemCarrito, "qty">) => {
     setInternalItems((prev) => {
@@ -48,8 +72,17 @@ export default function Carrito({ mesa, token, items: propItems, total: propTota
     });
   };
 
+  const vaciar = () => {
+    setInternalItems([]);
+    onVaciar?.();
+  };
+
   const pagar = async () => {
     if (cartItems.length === 0) return;
+    if (onPagar) {
+      onPagar();
+      return;
+    }
 
     try {
       const esDomicilio = !mesa;
@@ -58,8 +91,8 @@ export default function Carrito({ mesa, token, items: propItems, total: propTota
         : "https://barcafeteria.app.n8n.cloud/webhook/crear-pedido";
 
       const body = esDomicilio
-        ? { items: cartItems.map(i => ({ id: i.id, qty: i.qty })) }
-        : { mesa, token, items: cartItems.map(i => ({ id: i.id, qty: i.qty })) };
+        ? { items: cartItems.map((i) => ({ id: i.id, qty: i.qty })) }
+        : { mesa, token, items: cartItems.map((i) => ({ id: i.id, qty: i.qty })) };
 
       const res = await fetch(url, {
         method: "POST",
@@ -79,34 +112,144 @@ export default function Carrito({ mesa, token, items: propItems, total: propTota
     }
   };
 
-  return (
-    <div className="p-4 bg-zinc-900 text-white rounded-lg shadow-lg border border-zinc-800">
-      <h2 className="text-xl font-bold mb-4 text-yellow-500">Tu Pedido</h2>
-      {cartItems.length === 0 ? (
-        <p className="text-zinc-400">El carrito está vacío.</p>
-      ) : (
-        <ul className="space-y-2 mb-4">
-          {cartItems.map((item) => (
-            <li key={item.id} className="flex justify-between text-sm">
-              <span>{item.qty}x {item.nombre}</span>
-              <span className="text-yellow-500">{(item.precio * item.qty).toFixed(2)} €</span>
-            </li>
-          ))}
-        </ul>
-      )}
+  const hayContacto = tipo === "domicilio";
 
-      <div className="border-t border-zinc-700 pt-4 mt-4 flex justify-between font-bold text-lg">
-        <span>Total:</span>
-        <span className="text-yellow-500">{total.toFixed(2)} €</span>
+  return (
+    <aside className="bg-negro border border-borde rounded-3xl overflow-hidden">
+      {/* Cabecera */}
+      <header className="px-6 py-5 border-b border-borde/60 flex items-center justify-between">
+        <h2 className="texto-elegante text-xl font-bold text-blanco">Tu Pedido</h2>
+        {tipo === "mesa" && mesa ? (
+          <span className="pill-dorado">Mesa {mesa}</span>
+        ) : tipo === "domicilio" ? (
+          <span className="pill-dorado">A domicilio</span>
+        ) : null}
+      </header>
+
+      {/* Artículos */}
+      <div className="px-6 py-5">
+        {cartItems.length === 0 ? (
+          <p className="text-texto-secundario text-sm">
+            El carrito está vacío. Añade productos desde la carta.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {cartItems.map((item) => (
+              <li
+                key={item.id}
+                className="flex items-center justify-between gap-3 pb-3 border-b border-borde/40 last:border-0 last:pb-0"
+              >
+                <span className="text-sm text-blanco">
+                  <span className="text-dorado font-semibold">{item.qty}×</span>{" "}
+                  {item.nombre}
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-dorado whitespace-nowrap">
+                    {(item.precio * item.qty).toFixed(2)} €
+                  </span>
+                  {onEliminar && (
+                    <button
+                      type="button"
+                      onClick={() => onEliminar(item.id)}
+                      aria-label={`Quitar ${item.nombre}`}
+                      className="w-7 h-7 grid place-items-center rounded-full border border-borde text-texto-secundario hover:text-dorado hover:border-dorado transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      <button
-        onClick={pagar}
-        disabled={cartItems.length === 0 || cargando}
-        className="w-full mt-4 bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded transition-colors disabled:opacity-50"
-      >
-        {cargando ? "Procesando..." : "Pagar"}
-      </button>
-    </div>
+      {/* Datos de contacto (solo para entrega a domicilio) */}
+      {hayContacto && (
+        <div className="px-6 pb-5 space-y-3">
+          <label className="block">
+            <span className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-texto-secundario mb-2">
+              <User className="w-3.5 h-3.5 text-dorado" />
+              Nombre completo
+            </span>
+            <input
+              type="text"
+              className="input-oscuro"
+              value={nombre}
+              onChange={(e) => setNombre?.(e.target.value)}
+              placeholder="Nombre y apellidos"
+              autoComplete="name"
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-texto-secundario mb-2">
+              <Phone className="w-3.5 h-3.5 text-dorado" />
+              Teléfono
+            </span>
+            <input
+              type="tel"
+              className="input-oscuro"
+              value={telefono}
+              onChange={(e) => setTelefono?.(e.target.value)}
+              placeholder="600 00 00 00"
+              autoComplete="tel"
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-texto-secundario mb-2">
+              <MapPin className="w-3.5 h-3.5 text-dorado" />
+              Dirección de entrega
+            </span>
+            <textarea
+              className="input-oscuro min-h-[90px] resize-y"
+              value={direccion}
+              onChange={(e) => setDireccion?.(e.target.value)}
+              placeholder="Calle, número, piso, código postal y población"
+              autoComplete="street-address"
+              required
+            />
+          </label>
+        </div>
+      )}
+
+      {/* Total */}
+      <div className="px-6 py-4 border-t border-borde/60 flex items-center justify-between">
+        <span className="text-sm uppercase tracking-widest text-blanco font-semibold">
+          Total
+        </span>
+        <span className="texto-elegante text-2xl font-bold text-dorado">
+          {total.toFixed(2)} €
+        </span>
+      </div>
+
+      {/* Pago */}
+      <div className="px-6 pb-6 pt-2">
+        {motivoSinPagar && <p className="aviso-carrito mb-4">{motivoSinPagar}</p>}
+
+        <button
+          type="button"
+          onClick={pagar}
+          disabled={
+            cartItems.length === 0 || cargando || puedePagar === false
+          }
+          className="btn-dorado w-full gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:transform-none"
+        >
+          <CreditCard className="w-4 h-4" />
+          {cargando ? "Procesando…" : "Pagar con Stripe"}
+        </button>
+
+        {cartItems.length > 0 && (
+          <div className="mt-4 text-center">
+            <button type="button" onClick={vaciar} className="texto-sutil">
+              Vaciar carrito
+            </button>
+          </div>
+        )}
+      </div>
+    </aside>
   );
 }

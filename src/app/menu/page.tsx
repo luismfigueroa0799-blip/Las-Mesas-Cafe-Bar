@@ -30,7 +30,11 @@ export default function MenuPage() {
     try {
       const url = "https://barcafeteria.app.n8n.cloud/webhook/crear-pedido";
 
-      const body = { mesa: null, token: null, items: items.map((i) => ({ id: i.id, qty: i.qty })) };
+      const body = {
+        mesa: null,
+        token: null,
+        items: items.map((i) => ({ id: i.id, qty: i.qty })),
+      };
 
       const res = await fetch(url, {
         method: "POST",
@@ -53,13 +57,13 @@ export default function MenuPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-white">
+    <div className="min-h-screen bg-negro text-blanco">
       <Head>
         <title>Menú - Las Mesas Café Bar</title>
       </Head>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <header className="border-b border-zinc-800/30 mb-10 py-6">
+        <header className="border-b border-borde/30 mb-10 py-6">
           <div className="max-w-2xl mx-auto">
             <h1 className="texto-elegante text-2xl font-bold text-blanco">
               Menú Las Mesas Café Bar
@@ -67,46 +71,44 @@ export default function MenuPage() {
             <p className="text-texto-secundario mt-1">
               Pide desde nuestra carta y disfruta en mesa o en domicilio
             </p>
+            <div className="mt-4 flex gap-3">
+              <Link href="/mesa" className="btn-dorado">
+                Pedir en mesa
+              </Link>
+              <Link href="/domicilio" className="btn-outline-dorado">
+                Pedir a domicilio
+              </Link>
+            </div>
           </div>
         </header>
 
         <main className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Menu onAgregar={agregarProducto} />
 
-          <div className="lg:col-span-1 bg-zinc-950 rounded-lg p-6 border border-zinc-800/30">
-            <h2 className="texto-elegante text-xl font-bold text-blanco mb-4">Tu Pedido</h2>
-
-            {items.length === 0 ? (
-              <p className="text-zinc-400 text-sm mb-4">
-                El carrito está vacío. Anexa productos desde el menú.
-              </p>
-            ) : (
-              <ul className="space-y-2 mb-4">
-                {items.map((item) => (
-                  <li key={item.id} className="flex justify-between text-sm">
-                    <span>{item.qty}x {item.nombre}</span>
-                    <span className="text-yellow-500">{(item.precio * item.qty).toFixed(2)} €</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <div className="border-t border-zinc-700 pt-4 mt-4 flex justify-between font-bold text-lg">
-              <span>Total:</span>
-              <span className="text-yellow-500">{total.toFixed(2)} €</span>
-            </div>
-
-            <button
-              onClick={pagar}
-              disabled={items.length === 0 || cargando}
-              className="w-full mt-4 bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded transition-colors disabled:opacity-50"
-            >
-              {cargando ? "Procesando..." : "Pagar"}
-            </button>
+          <div className="lg:col-span-1">
+            <Carrito
+              items={items.map((it) => ({
+                id: Number(it.id),
+                nombre: it.nombre,
+                precio: it.precio,
+                qty: it.qty,
+              }))}
+              onAgregar={(id, nombre, precio) =>
+                agregarProducto({ id, nombre, precio })
+              }
+              onEliminar={(id) =>
+                setItems((prev) => prev.filter((i) => i.id !== id))
+              }
+              onVaciar={() => setItems([])}
+              total={total}
+              cargando={cargando}
+              onPagar={pagar}
+              tipo="mesa"
+            />
           </div>
         </main>
 
-        <footer className="border-t border-zinc-700/30 mt-10 py-6 text-xs text-zinc-500/50 text-center">
+        <footer className="border-t border-borde/30 mt-10 py-6 text-xs text-texto-secundario/50 text-center">
           Las Mesas Café Bar · Tel. 928 896 097 · WhatsApp 601 163 933
         </footer>
       </div>
